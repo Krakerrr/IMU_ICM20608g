@@ -33,35 +33,27 @@ void ICM20608g_I2C_Initialization(void)
  * I2C gpio INIT
  */
 
-void ICM20608g_GPIO_I2C_Initialization(void)
+void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c)
 {
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	//TODO: edit gpio clock init macros
-	__HAL_RCC_GPIOB_CLK_ENABLE();
+	if(hi2c->Instance == ICM20608g_I2C_CHANNEL)
+	{
+		GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	/**I2C1 GPIO Configuration
-		PB6     ------> I2C1_SCL
-		PB9     ------> I2C1_SDA
-	 */
-	GPIO_InitStruct.Pin 		= ICM20608g_I2C_SCL_PIN;
-	GPIO_InitStruct.Mode		= GPIO_MODE_AF_OD;
-	GPIO_InitStruct.Pull 		= GPIO_PULLUP;
-	GPIO_InitStruct.Speed 		= GPIO_SPEED_FREQ_VERY_HIGH;
-	GPIO_InitStruct.Alternate 	= GPIO_AF4_I2C1;
-	HAL_GPIO_Init(ICM20608g_I2C_SCL_PORT, &GPIO_InitStruct);
+		/* Peripheral clock enable */
+		__ICM20608g_CLK_ENABLE();
 
-	GPIO_InitStruct.Pin 		= ICM20608g_I2C_SDA_PIN;
-	HAL_GPIO_Init(ICM20608g_I2C_SDA_PORT, &GPIO_InitStruct);
+		/* I2C1 GPIO Configuration  */
+		GPIO_InitStruct.Pin 		= ICM20608g_I2C_SCL_PIN | ICM20608g_I2C_SDA_PIN;
+		GPIO_InitStruct.Mode		= GPIO_MODE_AF_OD;
+		GPIO_InitStruct.Pull 		= GPIO_PULLUP;
+		GPIO_InitStruct.Speed 		= GPIO_SPEED_FREQ_VERY_HIGH;
+		GPIO_InitStruct.Alternate 	= ICM20608g_GPIO_AF;
+		HAL_GPIO_Init(ICM20608g_I2C_SCL_PORT, &GPIO_InitStruct);
 
-	/* Peripheral clock enable */
-	__HAL_RCC_I2C1_CLK_ENABLE();
 
-	//	3. set priority
-	//	HAL_NVIC_SetPriority(I2C1_EV_IRQn, 15, 0);
-
-	//	4. enable peripheral irq in the nvic
-	//	HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
-
+		/*	NVIC */
+		//	__ICM20608g_NVIC_ENABLE();
+	}
 }
 
 
@@ -74,6 +66,7 @@ int ICM20608g_Initialization(void)
 
 	UARTprintmsg("Checking ICM20608g...\r\n");
 
+	HAL_Delay(50);
 	who_am_i = ICM20608g_Readbyte(WHO_AM_I);
 
 	// who am i = 0xAF
@@ -127,10 +120,6 @@ int ICM20608g_Initialization(void)
 	// ACCEL_CONFIG2 0x1D
 	ICM20608g_Writebyte(ACCEL_CONFIG2, 0x03); // Acc FCHOICE 1kHz(bit3-0), DLPF fc 44.8Hz(bit2:0-011)
 	HAL_Delay(50);
-
-	// Enable Interrupts when data is ready
-	//	ICM20608g_Writebyte(INT_ENABLE, 0x01); // Enable DRDY Interrupt
-	//	HAL_Delay(50);
 
 	return 0; //OK
 }
@@ -252,10 +241,8 @@ void ICM20608g_Get6AxisRawData(int16_t* accel, int16_t* gyro)
 
 void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g )
 {
-	float gyro_lsb_to_degs;	// 2000.f / 32768.f;
-	float accel_lsb_to_g; 	//16.f / 32768.f;
-	gyro_lsb_to_degs 	= 0.06103515625f;
-	accel_lsb_to_g 		= 0.00048828125f;
+	const float gyro_lsb_to_degs = 0.06103515625f;	// 2000.f / 32768.f;
+	const float accel_lsb_to_g   = 0.00048828125f; 	//16.f / 32768.f;
 
 	uint8_t data[14] = {0};
 	ICM20608g_Readbytes(ACCEL_XOUT_H, 14, data);
@@ -278,11 +265,3 @@ void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g )
 	ICM20608g->gyro_z = ( (float) ICM20608g->gyro_z_raw ) * gyro_lsb_to_degs;
 }
 
-
-
-
-//int ICM20608g_DataReady(void)
-//{
-//	//	return LL_GPIO_IsInputPinSet(ICM20608g_INT_PORT, ICM20608g_INT_PIN);
-//	return 0;
-//}

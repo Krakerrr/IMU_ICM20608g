@@ -24,12 +24,25 @@ I2C_HandleTypeDef 	hICM20608g_I2C;
 #define ICM20608g_I2C_SDA_PIN		GPIO_PIN_9
 #define ICM20608g_I2C_SDA_PORT		GPIOB
 
+#define ICM20608g_GPIO_AF        	GPIO_AF4_I2C1
+
 #define	ICM20608g_I2C_ADDRESS		0xD0
 
+#define __ICM20608g_CLK_ENABLE()   	do { \
+											__HAL_RCC_I2C1_CLK_ENABLE(); \
+											__HAL_RCC_GPIOB_CLK_ENABLE(); \
+									} while(0U)
 
-/**
- * @brief ICM-20602 Register Map
- */
+#define __ICM20608g_NVIC_ENABLE()   do { \
+											HAL_NVIC_SetPriority(I2C1_EV_IRQn, 15, 0); \
+											HAL_NVIC_EnableIRQ(I2C1_EV_IRQn); \
+										    HAL_NVIC_SetPriority(I2C1_ER_IRQn, 15, 0); \
+										    HAL_NVIC_EnableIRQ(I2C1_ER_IRQn); \
+									} while(0U)
+
+
+
+// ICM-20602 Register Map
 #define	XG_OFFS_TC_H			0x04
 #define	XG_OFFS_TC_L			0x05
 #define	YG_OFFS_TC_H			0x07
@@ -100,10 +113,6 @@ I2C_HandleTypeDef 	hICM20608g_I2C;
 
 
 
-/**
- * @brief ICM20608g structure definition.
- */
-
 typedef struct _ICM20608g{
 	int16_t acc_x_raw;
 	int16_t acc_y_raw;
@@ -121,26 +130,22 @@ typedef struct _ICM20608g{
 	float gyro_z;
 }Struct_ICM20608g;
 
-/**
- * @brief ICM20608g structure definition.
- */
-
-//extern Struct_ICM20608g ICM20608g;
 
 
-/**
- * @brief ICM20608g function prototype definition.
- */
+extern Struct_ICM20608g ICM20608g;
+
+
+
 void ICM20608g_Writebyte(uint8_t reg_addr, uint8_t val);
 uint8_t ICM20608g_Readbyte(uint8_t reg_addr);
 void ICM20608g_Readbytes(uint8_t reg_addr, uint8_t len, uint8_t* data);
 void ICM20608g_I2C_Initialization(void);
-void ICM20608g_GPIO_I2C_Initialization(void);
+void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c);
 int ICM20608g_Initialization(void);
 void ICM20608g_Get6AxisRawData(int16_t* accel, int16_t* gyro);
 void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g );
 void ICM20608g_Get3AxisGyroRawData(uint16_t* gyro);
 void ICM20608g_Get3AxisAccRawData(uint16_t* accel);
-//int ICM20608g_DataReady(void);
+
 
 #endif /* ICM20608g_ICM20608g_H_ */
