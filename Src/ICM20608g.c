@@ -24,7 +24,7 @@ void ICM20608g_I2C_Initialization(void)
 	hICM20608g_I2C.Init.NoStretchMode 	= I2C_NOSTRETCH_DISABLE;
 	if (HAL_I2C_Init(&hICM20608g_I2C) != HAL_OK)
 	{
-		UARTprintmsg("ICM20608g_I2C_Initialization error \r\n");
+		RF_SendMsg("ICM20608g_I2C_Initialization error \r\n");
 		Error_Handler();
 	}
 }
@@ -32,7 +32,6 @@ void ICM20608g_I2C_Initialization(void)
 /*
  * I2C gpio INIT
  */
-
 void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c)
 {
 	if(hi2c->Instance == ICM20608g_I2C_CHANNEL)
@@ -50,7 +49,6 @@ void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c)
 		GPIO_InitStruct.Alternate 	= ICM20608g_GPIO_AF;
 		HAL_GPIO_Init(ICM20608g_I2C_SCL_PORT, &GPIO_InitStruct);
 
-
 		/*	NVIC */
 		//	__ICM20608g_NVIC_ENABLE();
 	}
@@ -64,7 +62,7 @@ int ICM20608g_Initialization(void)
 
 	ICM20608g_I2C_Initialization();
 
-	UARTprintmsg("Checking ICM20608g...\r\n");
+	RF_SendMsg("Checking ICM20608g...\r\n");
 
 	HAL_Delay(50);
 	who_am_i = ICM20608g_Readbyte(WHO_AM_I);
@@ -72,7 +70,7 @@ int ICM20608g_Initialization(void)
 	// who am i = 0xAF
 	if(who_am_i == 0xAF)
 	{
-		UARTprintmsg("\nICM20608g who_am_i = 0x%02x...OK\r\n", who_am_i);
+		RF_SendMsg("\nICM20608g who_am_i = 0x%02x...OK\r\n", who_am_i);
 	}
 	// recheck
 	else if(who_am_i != 0x12)
@@ -80,7 +78,7 @@ int ICM20608g_Initialization(void)
 		who_am_i = ICM20608g_Readbyte(WHO_AM_I); // check again WHO_AM_I (0x75)
 
 		if (who_am_i != 0x12){
-			UARTprintmsg( "ICM20608g Not OK: 0x%02x Should be 0x%02x\r\n", who_am_i, 0xAF);
+			RF_SendMsg( "ICM20608g Not OK: 0x%02x Should be 0x%02x\r\n", who_am_i, 0xAF);
 			return 1; //ERROR
 		}
 	}
@@ -131,7 +129,7 @@ void I2CSendByte(uint8_t datasend)
 	//TODO: arrange delay
 	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &datasend, sizeof(datasend), HAL_MAX_DELAY)!= HAL_OK )
 	{
-		UARTprintmsg("I2CSendByte error \r\n");
+		RF_SendMsg("I2CSendByte error \r\n");
 		Error_Handler();
 	}
 }
@@ -142,7 +140,7 @@ void I2CSendBytes(uint8_t* pData, uint16_t datasize)
 	//TODO: arrange delay
 	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, pData, datasize, HAL_MAX_DELAY)!= HAL_OK )
 	{
-		UARTprintmsg("I2CSendBytes error \r\n");
+		RF_SendMsg("I2CSendBytes error \r\n");
 		Error_Handler();
 	}
 }
@@ -154,7 +152,7 @@ uint8_t I2CReadByte(void)
 	//TODO: REMOVE ERRORHANDLERS
 	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &val, 1, HAL_MAX_DELAY) != HAL_OK )
 	{
-		UARTprintmsg("I2CReadByte error \r\n");
+		RF_SendMsg("I2CReadByte error \r\n");
 		Error_Handler();
 	}
 
@@ -166,7 +164,7 @@ void I2CReadBytes( uint8_t* recvdata, uint8_t recvdatasize)
 	//TODO: REMOVE ERRORHANDLERS
 	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, recvdata, recvdatasize, HAL_MAX_DELAY) != HAL_OK )
 	{
-		UARTprintmsg("I2CReadBytes error \r\n");
+		RF_SendMsg("I2CReadBytes error \r\n");
 		Error_Handler();
 	}
 
@@ -239,7 +237,7 @@ void ICM20608g_Get6AxisRawData(int16_t* accel, int16_t* gyro)
 }
 
 
-void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g )
+void ICM20608g_GetData()
 {
 	const float gyro_lsb_to_degs = 0.06103515625f;	// 2000.f / 32768.f;
 	const float accel_lsb_to_g   = 0.00048828125f; 	//16.f / 32768.f;
@@ -247,21 +245,23 @@ void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g )
 	uint8_t data[14] = {0};
 	ICM20608g_Readbytes(ACCEL_XOUT_H, 14, data);
 
-	ICM20608g->acc_x_raw  = (data[0] << 8) | data[1];
-	ICM20608g->acc_y_raw  = (data[2] << 8) | data[3];
-	ICM20608g->acc_z_raw  = (data[4] << 8) | data[5];
+	ICM20608g_data.acc_x_raw  = (data[0] << 8) | data[1];
+	ICM20608g_data.acc_y_raw  = (data[2] << 8) | data[3];
+	ICM20608g_data.acc_z_raw  = (data[4] << 8) | data[5];
 
-	ICM20608g->temperature_raw  = (data[6] << 8) | data[7];
+	ICM20608g_data.temperature_raw  = (data[6] << 8) | data[7];
 
-	ICM20608g->gyro_x_raw = ((data[8] << 8) | data[9]);
-	ICM20608g->gyro_y_raw = ((data[10] << 8) | data[11]);
-	ICM20608g->gyro_z_raw = ((data[12] << 8) | data[13]);
+	ICM20608g_data.gyro_x_raw = ((data[8] << 8) | data[9]);
+	ICM20608g_data.gyro_y_raw = ((data[10] << 8) | data[11]);
+	ICM20608g_data.gyro_z_raw = ((data[12] << 8) | data[13]);
 
-	ICM20608g->acc_x  = ( (float) ICM20608g->acc_x_raw ) * accel_lsb_to_g;
-	ICM20608g->acc_y  = ( (float) ICM20608g->acc_y_raw ) * accel_lsb_to_g;
-	ICM20608g->acc_z  = ( (float) ICM20608g->acc_z_raw ) * accel_lsb_to_g;
-	ICM20608g->gyro_x = ( (float) ICM20608g->gyro_x_raw ) * gyro_lsb_to_degs;
-	ICM20608g->gyro_y = ( (float) ICM20608g->gyro_y_raw ) * gyro_lsb_to_degs;
-	ICM20608g->gyro_z = ( (float) ICM20608g->gyro_z_raw ) * gyro_lsb_to_degs;
+	ICM20608g_data.acc_x  = ( (float) ICM20608g_data.acc_x_raw ) * accel_lsb_to_g;
+	ICM20608g_data.acc_y  = ( (float) ICM20608g_data.acc_y_raw ) * accel_lsb_to_g;
+	ICM20608g_data.acc_z  = ( (float) ICM20608g_data.acc_z_raw ) * accel_lsb_to_g;
+	ICM20608g_data.gyro_x = ( (float) ICM20608g_data.gyro_x_raw ) * gyro_lsb_to_degs;
+	ICM20608g_data.gyro_y = ( (float) ICM20608g_data.gyro_y_raw ) * gyro_lsb_to_degs;
+	ICM20608g_data.gyro_z = ( (float) ICM20608g_data.gyro_z_raw ) * gyro_lsb_to_degs;
+
+	ICM20608g_data.status = 1;
 }
 

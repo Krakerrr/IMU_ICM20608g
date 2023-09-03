@@ -112,8 +112,16 @@ I2C_HandleTypeDef 	hICM20608g_I2C;
 
 
 
-
+// TODO: edit status and temp
 typedef struct _ICM20608g{
+	uint8_t status;
+	float acc_x;
+	float acc_y;
+	float acc_z;
+	float gyro_x;
+	float gyro_y;
+	float gyro_z;
+	float temp;
 	int16_t acc_x_raw;
 	int16_t acc_y_raw;
 	int16_t acc_z_raw;
@@ -121,18 +129,11 @@ typedef struct _ICM20608g{
 	int16_t gyro_x_raw;
 	int16_t gyro_y_raw;
 	int16_t gyro_z_raw;
-
-	float acc_x;
-	float acc_y;
-	float acc_z;
-	float gyro_x;
-	float gyro_y;
-	float gyro_z;
-}Struct_ICM20608g;
+}sICM20608g;
 
 
 
-extern Struct_ICM20608g ICM20608g;
+extern sICM20608g ICM20608g_data;
 
 
 
@@ -143,7 +144,7 @@ void ICM20608g_I2C_Initialization(void);
 void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c);
 int ICM20608g_Initialization(void);
 void ICM20608g_Get6AxisRawData(int16_t* accel, int16_t* gyro);
-void ICM20608g_Get6Data( Struct_ICM20608g *ICM20608g );
+void ICM20608g_GetData();
 void ICM20608g_Get3AxisGyroRawData(uint16_t* gyro);
 void ICM20608g_Get3AxisAccRawData(uint16_t* accel);
 
