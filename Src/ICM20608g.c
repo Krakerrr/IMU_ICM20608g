@@ -70,7 +70,7 @@ int ICM20608g_Initialization(void)
 	// who am i = 0xAF
 	if(who_am_i == 0xAF)
 	{
-		RF_SendMsg("\nICM20608g who_am_i = 0x%02x...OK\r\n", who_am_i);
+		RF_SendMsg("ICM20608g who_am_i = %d...OK\r\n", who_am_i);
 	}
 	// recheck
 	else if(who_am_i != 0x12)
@@ -125,20 +125,19 @@ int ICM20608g_Initialization(void)
 ///////// I2C functions /////////////
 void I2CSendByte(uint8_t datasend)
 {
-	//TODO: REMOVE ERRORHANDLERS
-	//TODO: arrange delay
-	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &datasend, sizeof(datasend), HAL_MAX_DELAY)!= HAL_OK )
+	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &datasend, sizeof(datasend), ICM20608g_I2C_Delay)!= HAL_OK )
 	{
-		RF_SendMsg("I2CSendByte error \r\n");
-		Error_Handler();
+		ICM20608g_data.datastatus = writefailed;
+	}else
+	{
+		ICM20608g_data.datastatus = dataready;
 	}
 }
 
 void I2CSendBytes(uint8_t* pData, uint16_t datasize)
 {
 	//TODO: REMOVE ERRORHANDLERS
-	//TODO: arrange delay
-	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, pData, datasize, HAL_MAX_DELAY)!= HAL_OK )
+	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, pData, datasize, ICM20608g_I2C_Delay)!= HAL_OK )
 	{
 		RF_SendMsg("I2CSendBytes error \r\n");
 		Error_Handler();
@@ -150,7 +149,7 @@ uint8_t I2CReadByte(void)
 {
 	uint8_t val;
 	//TODO: REMOVE ERRORHANDLERS
-	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &val, 1, HAL_MAX_DELAY) != HAL_OK )
+	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &val, 1, ICM20608g_I2C_Delay) != HAL_OK )
 	{
 		RF_SendMsg("I2CReadByte error \r\n");
 		Error_Handler();
@@ -162,10 +161,12 @@ uint8_t I2CReadByte(void)
 void I2CReadBytes( uint8_t* recvdata, uint8_t recvdatasize)
 {
 	//TODO: REMOVE ERRORHANDLERS
-	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, recvdata, recvdatasize, HAL_MAX_DELAY) != HAL_OK )
+	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, recvdata, recvdatasize, ICM20608g_I2C_Delay) != HAL_OK )
 	{
-		RF_SendMsg("I2CReadBytes error \r\n");
-		Error_Handler();
+		ICM20608g_data.datastatus = readfailed;
+	}else
+	{
+		ICM20608g_data.datastatus = dataready;
 	}
 
 }
@@ -191,9 +192,13 @@ void ICM20608g_Writebyte(uint8_t reg_addr, uint8_t val)
 
 void ICM20608g_Readbytes(uint8_t reg_addr, uint8_t len, uint8_t* data)
 {
+	ICM20608g_data.datastatus = NA;
 	I2CSendByte( reg_addr );
 
-	I2CReadBytes( data, len);
+	if(ICM20608g_data.datastatus == dataready)
+	{
+		I2CReadBytes( data, len);
+	}
 }
 
 
@@ -262,6 +267,5 @@ void ICM20608g_GetData()
 	ICM20608g_data.gyro_y = ( (float) ICM20608g_data.gyro_y_raw ) * gyro_lsb_to_degs;
 	ICM20608g_data.gyro_z = ( (float) ICM20608g_data.gyro_z_raw ) * gyro_lsb_to_degs;
 
-	ICM20608g_data.status = 1;
 }
 

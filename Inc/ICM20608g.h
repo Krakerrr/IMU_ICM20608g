@@ -13,6 +13,11 @@
 
 I2C_HandleTypeDef 	hICM20608g_I2C;
 
+/*
+ * I2C time limit for read [ms]
+ */
+#define ICM20608g_I2C_Delay			1
+
 /**
  * @brief Definition for connected to I2C1 (APB2 PCLK = 25MHz)
  */
@@ -112,9 +117,17 @@ I2C_HandleTypeDef 	hICM20608g_I2C;
 
 
 
+typedef enum
+{
+	NA = 0,
+	dataready,
+	writefailed,
+	readfailed
+}eDataStatus;
+
 // TODO: edit status and temp
 typedef struct _ICM20608g{
-	uint8_t status;
+	eDataStatus datastatus;
 	float acc_x;
 	float acc_y;
 	float acc_z;
