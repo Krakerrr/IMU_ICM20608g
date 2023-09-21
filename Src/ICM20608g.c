@@ -62,25 +62,14 @@ int ICM20608g_Initialization(void)
 
 	ICM20608g_I2C_Initialization();
 
-	RF_SendMsg("Checking ICM20608g...\r\n");
-
 	HAL_Delay(50);
 	who_am_i = ICM20608g_Readbyte(WHO_AM_I);
 
 	// who am i = 0xAF
-	if(who_am_i == 0xAF)
+	if(who_am_i != 0xAF)
 	{
-		RF_SendMsg("ICM20608g who_am_i = %d...OK\r\n", who_am_i);
-	}
-	// recheck
-	else if(who_am_i != 0x12)
-	{
-		who_am_i = ICM20608g_Readbyte(WHO_AM_I); // check again WHO_AM_I (0x75)
-
-		if (who_am_i != 0x12){
-			RF_SendMsg( "ICM20608g Not OK: 0x%02x Should be 0x%02x\r\n", who_am_i, 0xAF);
-			return 1; //ERROR
-		}
+		RF_SendMsg("ICM20608g who_am_i = %d... NOT OK\r\n", who_am_i);
+		return 1; // Fail
 	}
 
 	// Reset ICM20608g
@@ -92,10 +81,8 @@ int ICM20608g_Initialization(void)
 	ICM20608g_Writebyte(PWR_MGMT_1, 0x01); // Use PLL(bit2:0-01)
 	HAL_Delay(50);
 
-
 	// PWR_MGMT_2 0x6C
-	//	ICM20608g_Writebyte(PWR_MGMT_2, 0x38); // Disable Acc(bit5:3-111), Enable Gyro(bit2:0-000)
-	ICM20608g_Writebyte( PWR_MGMT_2, 0x00 ); // Enable Acc(bit5:3-000), Enable Gyro(bit2:0-000)
+	ICM20608g_Writebyte( PWR_MGMT_2, 0x00 ); // Enable Acc & Gyro
 	HAL_Delay(50);
 
 	// set sample rate to 1000Hz and apply a software filter
@@ -246,6 +233,8 @@ void ICM20608g_GetData()
 {
 	const float gyro_lsb_to_degs = 0.06103515625f;	// 2000.f / 32768.f;
 	const float accel_lsb_to_g   = 0.00048828125f; 	//16.f / 32768.f;
+	const float RoomTemp_Offset = 0;
+	const float TempSensitivity = 326.8;
 
 	uint8_t data[14] = {0};
 	ICM20608g_Readbytes(ACCEL_XOUT_H, 14, data);
@@ -266,6 +255,6 @@ void ICM20608g_GetData()
 	ICM20608g_data.gyro_x = ( (float) ICM20608g_data.gyro_x_raw ) * gyro_lsb_to_degs;
 	ICM20608g_data.gyro_y = ( (float) ICM20608g_data.gyro_y_raw ) * gyro_lsb_to_degs;
 	ICM20608g_data.gyro_z = ( (float) ICM20608g_data.gyro_z_raw ) * gyro_lsb_to_degs;
-
+	ICM20608g_data.temp   = ( (float) ICM20608g_data.temperature_raw - RoomTemp_Offset) / TempSensitivity + 25;
 }
 
