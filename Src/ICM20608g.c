@@ -25,7 +25,7 @@ void ICM20608g_I2C_Initialization(void)
 	if (HAL_I2C_Init(&hICM20608g_I2C) != HAL_OK)
 	{
 		RF_SendMsg("ICM20608g_I2C_Initialization error \r\n");
-		Error_Handler();
+		Error_Handler(E_I2CInit);
 	}
 }
 
@@ -57,7 +57,7 @@ void ICM20608g_GPIO_I2C_Initialization(I2C_HandleTypeDef* hi2c)
 
 int ICM20608g_Initialization(void)
 {
-
+// TODO : edit IMU configs
 	uint8_t who_am_i = 0;
 
 	ICM20608g_I2C_Initialization();
@@ -68,7 +68,7 @@ int ICM20608g_Initialization(void)
 	// who am i = 0xAF
 	if(who_am_i != 0xAF)
 	{
-		RF_SendMsg("ICM20608g who_am_i = %d... NOT OK\r\n", who_am_i);
+		Error_Handler(E_ICMInit);
 		return 1; // Fail
 	}
 
@@ -126,8 +126,7 @@ void I2CSendBytes(uint8_t* pData, uint16_t datasize)
 	//TODO: REMOVE ERRORHANDLERS
 	if( HAL_I2C_Master_Transmit(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, pData, datasize, ICM20608g_I2C_Delay)!= HAL_OK )
 	{
-		RF_SendMsg("I2CSendBytes error \r\n");
-		Error_Handler();
+		Error_Handler(E_I2CSendByte);
 	}
 }
 
@@ -138,8 +137,7 @@ uint8_t I2CReadByte(void)
 	//TODO: REMOVE ERRORHANDLERS
 	if( HAL_I2C_Master_Receive(&hICM20608g_I2C, ICM20608g_I2C_ADDRESS, &val, 1, ICM20608g_I2C_Delay) != HAL_OK )
 	{
-		RF_SendMsg("I2CReadByte error \r\n");
-		Error_Handler();
+		Error_Handler(E_I2CReadByte);
 	}
 
 	return val;
@@ -159,7 +157,6 @@ void I2CReadBytes( uint8_t* recvdata, uint8_t recvdatasize)
 }
 
 
-
 //////////////////////////////////////////////////////////////
 
 uint8_t ICM20608g_Readbyte(uint8_t reg_addr)
@@ -176,6 +173,7 @@ void ICM20608g_Writebyte(uint8_t reg_addr, uint8_t val)
 
 	I2CSendBytes(sendata, 2);
 }
+
 
 void ICM20608g_Readbytes(uint8_t reg_addr, uint8_t len, uint8_t* data)
 {
